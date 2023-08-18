@@ -14,6 +14,6 @@ Billah, Tashrif; Bouix, Sylvain; Pasternak, Ofer; Generalized Tract Based Spatia
 
 Smith SM, Jenkinson M, Johansen-Berg H, Rueckert D, Nichols TE, Mackay CE, Watkins KE, Ciccarelli O, Cader MZ, Matthews PM, Behrens TE. Tract-based spatial statistics: voxelwise analysis of multi-subject diffusion data. Neuroimage. 2006 Jul 15;31(4):1487-505. doi: 10.1016/j.neuroimage.2006.02.024.
 
-##Acknowledgements
+## Acknowledgements
 
 Thank you to Shuchen Hu and Marta Pena for assistance with script development and testing.
