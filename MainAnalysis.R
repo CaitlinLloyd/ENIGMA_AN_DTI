@@ -202,7 +202,7 @@ AN_acute <- subset(merged_ordered, merged_ordered$dx3==32)
 AN_partial <- subset(merged_ordered, merged_ordered$dx3==31)
 
 ## preds can be changed to add in other variables, using string format
-preds <- c("+ age + age2", "+ age + age2 +bmi", "+ age + age2")
+preds <- c("+ age + age2", "+ age + age2 +bmi", "+ age")
 
 
 framename <- c("AN","HC", "AN_acute", "AN_partial")
