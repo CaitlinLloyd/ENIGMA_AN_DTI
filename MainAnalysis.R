@@ -198,8 +198,8 @@ models <- read_xlsx("Models_withingroup.xlsx")
 
 AN <- subset(merged_ordered, merged_ordered$dx==1)
 HC <- subset(merged_ordered, merged_ordered$dx==0)
-AN_acute <- subset(merged_ordered, merged_ordered$dx3==32)
-AN_partial <- subset(merged_ordered, merged_ordered$dx3==31)
+AN_acute <- subset(merged_ordered, merged_ordered$dx3==2)
+AN_partial <- subset(merged_ordered, merged_ordered$dx3==1)
 
 ## preds can be changed to add in other variables, using string format
 preds <- c("+ age + age2", "+ age + age2 +bmi", "+ age")
