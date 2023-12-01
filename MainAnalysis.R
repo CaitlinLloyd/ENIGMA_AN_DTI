@@ -155,8 +155,8 @@ for(i in 1:nrow(models)){
     ci <- CI1(d, seg)
     row <- data.frame(test, info,n1,n2,t,d,ci[1],ci[2], seg, df_error)
     TWO_GROUP <- rbind(TWO_GROUP,row)
-    ###This analysis is only done if there are three groups
-    if(length(unique(merged_ordered$dx3))>2){
+    ###three groups
+   
       formula <- models[i,]$Formula
       formula <- gsub("dx", "dx3", formula)
       if(length(unique(merged_ordered$site))<2){formula <- gsub(" + site","",formula, fixed = T)}
@@ -184,15 +184,15 @@ for(i in 1:nrow(models)){
       d_pan_an <- partial.d(t_pan_an,tstat.df,n_an,n_pan)
       seg_pan_an <- se.g(d_pan_an,n_an,n_pan)
       ci_pan_an <- CI1(d_pan_an, seg_pan_an)
-      #sed <- se.d(d,n1,n2) 
+      sed <- se.d(d,n1,n2) 
       
       row <- data.frame(test, info,n_an,n_pan,n_hc,t_hc_pan,d_hc_pan,seg_hc_pan,ci_hc_pan[1],ci_hc_pan[2],t_hc_an,d_hc_an,seg_hc_an,ci_hc_an[1],ci_hc_an[2],t_pan_an,d_pan_an,seg_pan_an,ci_pan_an[1],ci_pan_an[2],tstat.df)
-      THREE_GROUP <- rbind(THREE_GROUP,row)}
+      THREE_GROUP <- rbind(THREE_GROUP,row)
 }
 }
 
 ## Predictors of brain outcomes per group
-setwd(enigmadir)
+setwd("/Volumes/EDRU/Individual Folders/Caitlin/ENIGMA")
 models <- read_xlsx("Models_withingroup.xlsx")
 
 
@@ -201,13 +201,39 @@ HC <- subset(merged_ordered, merged_ordered$dx==0)
 AN_acute <- subset(merged_ordered, merged_ordered$dx3==2)
 AN_partial <- subset(merged_ordered, merged_ordered$dx3==1)
 
+a <- nrow(AN)
+h <- nrow(HC)
+aa <- nrow(AN_acute)
+ap <- nrow(AN_partial)
+
 ## preds can be changed to add in other variables, using string format
 preds <- c("+ age + age2", "+ age + age2 +bmi", "+ age")
 
 
-framename <- c("AN","HC", "AN_acute", "AN_partial")
+if(ap > 2 & aa > 2){ 
+framename <- c("AN","HC","AN_acute","AN_partial")
+framelist <- list(AN,HC,AN_acute,AN_partial)
+}
+
+if(ap < 2 & aa > 2){ 
+framename <- c("AN","HC","AN_acute")
+framelist <- list(AN,HC,AN_acute)
+  }
+  
+if(ap < 2 & ap > 2){ 
+framename <- c("AN","HC","AN_partial")
+framelist <- list(AN,HC,AN_partial)
+}
+
+if(ap < 2 & ap < 2 ){ 
+  framename <- c("AN","HC")
+  framelist <- list(AN,HC)
+}
+
+
 i <- 0
-for(frame in list(AN,HC, AN_acute, AN_partial)){
+for(x in 1:length(framelist)){
+  frame <- framelist[[x]]
   i <- i+1
   name <- framename[i]
   for(test in testvars){
@@ -216,7 +242,7 @@ for(frame in list(AN,HC, AN_acute, AN_partial)){
         frame$test <- frame[[test]]
         formula <- paste0(models[j,]$Formula,pred)
         info <- paste0(models[j,]$Info," adj for ",pred)
-        if(length(unique(frame$site<2))){formula <- gsub("site+","",formula, fixed = T)}
+        if(length(unique(frame$site)<2)){formula <- gsub("site+","",formula, fixed = T)}
         mod <-lm(formula = formula, data=frame)
         n <- data.frame(model.matrix(mod))
         n1 <- nrow(n)
@@ -234,9 +260,9 @@ for(frame in list(AN,HC, AN_acute, AN_partial)){
       }}
 }}
 setwd(results)
-write.csv(TWO_GROUP,paste0(projectdir,"/two_group_comparison_ENIGMA_",filetype,".csv"))
+write.csv(TWO_GROUP,paste0(results,"/two_group_comparison_ENIGMA_",filetype,"_",study,".csv"))
 write.csv(THREE_GROUP,paste0(projectdir,"/three_group_comparison_ENIGMA_",filetype,".csv"))
-write.csv(STATS,paste0("correlations_ENIGMA_",filetype,".csv"))
+write.csv(STATS,paste0(results,"/correlations_ENIGMA_",filetype,"_",study,".csv"))
 }
 
 
