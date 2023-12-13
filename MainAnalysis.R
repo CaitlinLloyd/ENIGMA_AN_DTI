@@ -152,40 +152,57 @@ for(i in 1:nrow(models)){
     ci <- CI1(d, seg)
     row <- data.frame(test, info,n1,n2,t,d,ci[1],ci[2], seg, df_error)
     TWO_GROUP <- rbind(TWO_GROUP,row)
-    ###three groups
-   
-      formula <- models[i,]$Formula
-      formula <- gsub("dx", "dx3", formula)
-      if(length(unique(merged_ordered$site))<2){formula <- gsub(" + site","",formula, fixed = T)}
-      mod <-lm(formula = formula, data=merged_ordered)
-      n <- data.frame(model.matrix(mod))
-      n_an <- nrow(subset(n, n$dx332==1))
-      n_pan <- nrow(subset(n, n$dx331==1))
-      n_hc <- nrow(subset(n, n$dx331==0 & n$dx332==0))
-      stat <- data.frame(summary(mod)$coefficients)
-      tmp=summary(glht(mod, mcp(dx3="Tukey")))
-      t_hc_pan=tmp$test$tstat[1] 
-      tstat.df=tmp$df
-      d_hc_pan <- partial.d(t_hc_pan,tstat.df,n_pan,n_hc)
-      seg_hc_pan <- se.g(d_hc_pan,n_pan,n_hc)
-      ci_hc_pan <- CI1(d_hc_pan, seg_hc_pan)
-      
-      t_hc_an=tmp$test$tstat[2] 
-      tstat.df=tmp$df
-      d_hc_an <- partial.d(t_hc_an,tstat.df,n_an,n_hc)
-      seg_hc_an <- se.g(d_hc_an,n_an,n_hc)
-      ci_hc_an <- CI1(d_hc_an, seg_hc_an)
-      
-      t_pan_an=tmp$test$tstat[3] 
-      tstat.df=tmp$df
-      d_pan_an <- partial.d(t_pan_an,tstat.df,n_an,n_pan)
-      seg_pan_an <- se.g(d_pan_an,n_an,n_pan)
-      ci_pan_an <- CI1(d_pan_an, seg_pan_an)
-      sed <- se.d(d,n1,n2) 
-      
-      row <- data.frame(test, info,n_an,n_pan,n_hc,t_hc_pan,d_hc_pan,seg_hc_pan,ci_hc_pan[1],ci_hc_pan[2],t_hc_an,d_hc_an,seg_hc_an,ci_hc_an[1],ci_hc_an[2],t_pan_an,d_pan_an,seg_pan_an,ci_pan_an[1],ci_pan_an[2],tstat.df)
-      THREE_GROUP <- rbind(THREE_GROUP,row)
-}
+    ###three groups: this will work if dx3 column is coded as dx3=1 for partial AN, dx3=2 for acute AN, and dx3=0 for HC. If you have used 30,31,32 codings for HC, AN-p, AN-a, then the
+    ### code below will need modifying.
+    
+    formula <- models[i,]$Formula
+    formula <- gsub("dx", "dx3", formula)
+    if(length(unique(merged_ordered$site))<2){formula <- gsub(" + site","",formula, fixed = T)}
+    mod <-lm(formula = formula, data=merged_ordered)
+    n <- data.frame(model.matrix(mod))
+    n_an <- nrow(subset(n, n$dx32==1))
+    n_pan <- nrow(subset(n, n$dx31==1))
+    n_hc <- nrow(subset(n, n$dx3==0 & n$dx332==0))
+    if(n_an > 2 & n_pan > 2){
+    stat <- data.frame(summary(mod)$coefficients)
+    tmp=summary(glht(mod, mcp(dx3="Tukey")))
+    t_hc_pan=tmp$test$tstat[1] 
+    tstat.df=tmp$df
+    d_hc_pan <- partial.d(t_hc_pan,tstat.df,n_pan,n_hc)
+    seg_hc_pan <- se.g(d_hc_pan,n_pan,n_hc)
+    ci_hc_pan <- CI1(d_hc_pan, seg_hc_pan)
+    
+    t_hc_an=tmp$test$tstat[2] 
+    tstat.df=tmp$df
+    d_hc_an <- partial.d(t_hc_an,tstat.df,n_an,n_hc)
+    seg_hc_an <- se.g(d_hc_an,n_an,n_hc)
+    ci_hc_an <- CI1(d_hc_an, seg_hc_an)
+    
+    t_pan_an=tmp$test$tstat[3] 
+    tstat.df=tmp$df
+    d_pan_an <- partial.d(t_pan_an,tstat.df,n_an,n_pan)
+    seg_pan_an <- se.g(d_pan_an,n_an,n_pan)
+    ci_pan_an <- CI1(d_pan_an, seg_pan_an)
+    sed <- se.d(d,n1,n2) 
+    
+    row <- data.frame(test, info,n_an,n_pan,n_hc,t_hc_pan,d_hc_pan,seg_hc_pan,ci_hc_pan[1],ci_hc_pan[2],t_hc_an,d_hc_an,seg_hc_an,ci_hc_an[1],ci_hc_an[2],t_pan_an,d_pan_an,seg_pan_an,ci_pan_an[1],ci_pan_an[2],tstat.df)
+    THREE_GROUP <- rbind(THREE_GROUP,row)}
+    if(n_an < 2 | n_pan < 2){
+    n <- data.frame(model.matrix(mod))
+    n1 <- nrow(subset(n, n$dx31==1))
+    n2 <- nrow(subset(n, n$dx31==0))
+    stat <- data.frame(summary(mod)$coefficients)
+    t <- stat$t.value[rownames(stat)=="dx31"]
+    df_error <- mod$df.residual
+    if(formula == "test ~ dx"){
+      d <- d.t.unpaired(t,n1,n2)
+    }else{
+      d <- partial.d(t,df_error,n1,n2)}
+      seg <- se.g(d,n1,n2)  
+      #sed <- se.d(d,n1,n2) 
+      ci <- CI1(d, seg)
+      row <- data.frame(test, info,n1,n2,t,d,ci[1],ci[2], seg, df_error)
+      THREE_GROUP <- rbind(THREE_GROUP,row)}
 }
 
 ## Predictors of brain outcomes per group
