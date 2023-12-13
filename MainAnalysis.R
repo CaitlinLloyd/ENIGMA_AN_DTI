@@ -19,11 +19,12 @@ for(file in files){
   TWO_GROUP <- data.frame()
   THREE_GROUP <- data.frame()
   STATS <- data.frame()
-
+  
   setwd(statsdir)
   loop = loop + 1
   tbssfile <- file
   Dat <- read.csv(tbssfile, check.names = F); #Read in the phenotypes file
+  colnames(Dat) <- gsub(".","-", colnames(Dat),fixed=T)
   # 
   # #check to make sure all of the necessary columns are present
   filetype <- gsub("_combined_roi_avg.csv","",file)
@@ -38,10 +39,10 @@ for(file in files){
   names <- colnames(Dat)
   names <- names[names != "Cases"]
   names <- names[!(names=="Average" | names=="Weighted_avg"| names=="Core_weighted_avg" | names=="Core_weighted_avg" | names=="Peri")]
-  
+
   
   for(name in names){
-    colnames(Dat) <- gsub(name, paste0(name,"_",filetype), colnames(Dat)) 
+    colnames(Dat) <- gsub(name, paste0(name,"_",filetype), colnames(Dat),fixed=TRUE) 
   }
   
   
@@ -68,10 +69,10 @@ for(file in files){
   
   #combine the files into one dataframe
   merged_ordered = merge(Covs, Dat, by.x="SubjID", by.y="Cases");
-
+  
   
   brain <- merged_ordered %>% dplyr::select(ends_with(filetype)) %>% colnames()
-if("ad" %in% brain){brain <- brain[!brain=="ad"]}
+  if("ad" %in% brain){brain <- brain[!brain=="ad"]}
   setwd(results)
   cont <- c("age","bmi","bmi_sds","ao","durill","deprsymp","iq")
   cat <- c("dx","dx3","ap","ad","in_out","comorb","hand","parentses","subtype","site")
@@ -108,176 +109,176 @@ if("ad" %in% brain){brain <- brain[!brain=="ad"]}
     
     write.csv(cont_sum,"cont_summary_3group.csv")
   }
-
-
-cat('Calculating brain summaries for 2 groups', tbssfile,'\n')
-brain_sum <- merged_ordered %>% dplyr::group_by(dx) %>% st(brain, group="dx",out='csv',file=paste0(tbssfile,"_brain_summary_2group.csv"))
-
-cat('Calculating brain summaries for 3 groups for ', tbssfile,'\n')
-brain_sum <- merged_ordered %>% dplyr::group_by(dx3) %>% st(brain, group="dx3",out='csv',file=paste0(tbssfile,"_brain_summary_3group.csv"))
-
-
-
-
-setwd(enigmadir)
-models <- read_xlsx("Models_betweengroup.xlsx")
-
-testvars <- merged_ordered %>% dplyr::select(ends_with(filetype)) %>% colnames()
-if("ad" %in% testvars){testvars <- testvars[!testvars=="ad"]}
-
-merged_ordered$dx3 <- as.factor(merged_ordered$dx3)
-
-##start with two-group
-for(i in 1:nrow(models)){  
-  if(i > 1){testvars <- testvars[!(testvars=="Average" | testvars=="Weighted_avg"| testvars=="Core_weighted_avg" | testvars=="Core_weighted_avg" | testvars=="Peri")]}
-  formula <- models[i,]$Formula
-  info <- models[i,]$Info
-  if(length(unique(merged_ordered$site<2))){formula <- gsub(" + site","",formula, fixed = T)}
-  formula2dx <- formula
-  for(test in testvars){
-    merged_ordered$test <- merged_ordered[[test]]  
-    mod <-lm(formula = formula2dx, data=merged_ordered)
-    n <- data.frame(model.matrix(mod))
-    n1 <- nrow(subset(n, n$dx1==1))
-    n2 <- nrow(subset(n, n$dx1==0))
-    stat <- data.frame(summary(mod)$coefficients)
-    t <- stat$t.value[rownames(stat)=="dx1"]
-    df_error <- mod$df.residual
-    if(formula == "test ~ dx"){
-      d <- d.t.unpaired(t,n1,n2)
-    }else{
-      d <- partial.d(t,df_error,n1,n2)}
-    seg <- se.g(d,n1,n2)  
-    #sed <- se.d(d,n1,n2) 
-    ci <- CI1(d, seg)
-    row <- data.frame(test, info,n1,n2,t,d,ci[1],ci[2], seg, df_error)
-    TWO_GROUP <- rbind(TWO_GROUP,row)
-    ###three groups: this will work if dx3 column is coded as dx3=1 for partial AN, dx3=2 for acute AN, and dx3=0 for HC. If you have used 30,31,32 codings for HC, AN-p, AN-a, then the
-    ### code below will need modifying.
-    
+  
+  
+  cat('Calculating brain summaries for 2 groups', tbssfile,'\n')
+  brain_sum <- merged_ordered %>% dplyr::group_by(dx) %>% st(brain, group="dx",out='csv',file=paste0(tbssfile,"_brain_summary_2group.csv"))
+  
+  cat('Calculating brain summaries for 3 groups for ', tbssfile,'\n')
+  brain_sum <- merged_ordered %>% dplyr::group_by(dx3) %>% st(brain, group="dx3",out='csv',file=paste0(tbssfile,"_brain_summary_3group.csv"))
+  
+  
+  
+  
+  setwd(enigmadir)
+  models <- read_xlsx("Models_betweengroup.xlsx")
+  
+  testvars <- merged_ordered %>% dplyr::select(ends_with(filetype)) %>% colnames()
+  if("ad" %in% testvars){testvars <- testvars[!testvars=="ad"]}
+  
+  merged_ordered$dx3 <- as.factor(merged_ordered$dx3)
+  
+  ##start with two-group
+  for(i in 1:nrow(models)){  
+    if(i > 1){testvars <- testvars[!(testvars=="Average" | testvars=="Weighted_avg"| testvars=="Core_weighted_avg" | testvars=="Core_weighted_avg" | testvars=="Peri")]}
     formula <- models[i,]$Formula
-    formula <- gsub("dx", "dx3", formula)
-    if(length(unique(merged_ordered$site))<2){formula <- gsub(" + site","",formula, fixed = T)}
-    mod <-lm(formula = formula, data=merged_ordered)
-    n <- data.frame(model.matrix(mod))
-    n_an <- nrow(subset(n, n$dx32==1))
-    n_pan <- nrow(subset(n, n$dx31==1))
-    n_hc <- nrow(subset(n, n$dx3==0 & n$dx332==0))
-    if(n_an > 2 & n_pan > 2){
-    stat <- data.frame(summary(mod)$coefficients)
-    tmp=summary(glht(mod, mcp(dx3="Tukey")))
-    t_hc_pan=tmp$test$tstat[1] 
-    tstat.df=tmp$df
-    d_hc_pan <- partial.d(t_hc_pan,tstat.df,n_pan,n_hc)
-    seg_hc_pan <- se.g(d_hc_pan,n_pan,n_hc)
-    ci_hc_pan <- CI1(d_hc_pan, seg_hc_pan)
-    
-    t_hc_an=tmp$test$tstat[2] 
-    tstat.df=tmp$df
-    d_hc_an <- partial.d(t_hc_an,tstat.df,n_an,n_hc)
-    seg_hc_an <- se.g(d_hc_an,n_an,n_hc)
-    ci_hc_an <- CI1(d_hc_an, seg_hc_an)
-    
-    t_pan_an=tmp$test$tstat[3] 
-    tstat.df=tmp$df
-    d_pan_an <- partial.d(t_pan_an,tstat.df,n_an,n_pan)
-    seg_pan_an <- se.g(d_pan_an,n_an,n_pan)
-    ci_pan_an <- CI1(d_pan_an, seg_pan_an)
-    sed <- se.d(d,n1,n2) 
-    
-    row <- data.frame(test, info,n_an,n_pan,n_hc,t_hc_pan,d_hc_pan,seg_hc_pan,ci_hc_pan[1],ci_hc_pan[2],t_hc_an,d_hc_an,seg_hc_an,ci_hc_an[1],ci_hc_an[2],t_pan_an,d_pan_an,seg_pan_an,ci_pan_an[1],ci_pan_an[2],tstat.df)
-    THREE_GROUP <- rbind(THREE_GROUP,row)}
-    if(n_an < 2 | n_pan < 2){
-    n <- data.frame(model.matrix(mod))
-    n1 <- nrow(subset(n, n$dx31==1))
-    n2 <- nrow(subset(n, n$dx31==0))
-    stat <- data.frame(summary(mod)$coefficients)
-    t <- stat$t.value[rownames(stat)=="dx31"]
-    df_error <- mod$df.residual
-    if(formula == "test ~ dx"){
-      d <- d.t.unpaired(t,n1,n2)
-    }else{
-      d <- partial.d(t,df_error,n1,n2)}
+    info <- models[i,]$Info
+    if(length(unique(merged_ordered$site<2))){formula <- gsub(" + site","",formula, fixed = T)}
+    formula2dx <- formula
+    for(test in testvars){
+      merged_ordered$test <- merged_ordered[[test]]  
+      mod <-lm(formula = formula2dx, data=merged_ordered)
+      n <- data.frame(model.matrix(mod))
+      n1 <- nrow(subset(n, n$dx1==1))
+      n2 <- nrow(subset(n, n$dx1==0))
+      stat <- data.frame(summary(mod)$coefficients)
+      t <- stat$t.value[rownames(stat)=="dx1"]
+      df_error <- mod$df.residual
+      if(formula == "test ~ dx"){
+        d <- d.t.unpaired(t,n1,n2)
+      }else{
+        d <- partial.d(t,df_error,n1,n2)}
       seg <- se.g(d,n1,n2)  
       #sed <- se.d(d,n1,n2) 
       ci <- CI1(d, seg)
       row <- data.frame(test, info,n1,n2,t,d,ci[1],ci[2], seg, df_error)
-      THREE_GROUP <- rbind(THREE_GROUP,row)}
-}
-
-## Predictors of brain outcomes per group
-setwd("/Volumes/EDRU/Individual Folders/Caitlin/ENIGMA")
-models <- read_xlsx("Models_withingroup.xlsx")
-
-
-AN <- subset(merged_ordered, merged_ordered$dx==1)
-HC <- subset(merged_ordered, merged_ordered$dx==0)
-AN_acute <- subset(merged_ordered, merged_ordered$dx3==2)
-AN_partial <- subset(merged_ordered, merged_ordered$dx3==1)
-
-a <- nrow(AN)
-h <- nrow(HC)
-aa <- nrow(AN_acute)
-ap <- nrow(AN_partial)
-
-## preds can be changed to add in other variables, using string format
-preds <- c("+ age + age2", "+ age + age2 +bmi", "+ age")
-
-
-if(ap > 2 & aa > 2){ 
-framename <- c("AN","HC","AN_acute","AN_partial")
-framelist <- list(AN,HC,AN_acute,AN_partial)
-}
-
-if(ap < 2 & aa > 2){ 
-framename <- c("AN","HC","AN_acute")
-framelist <- list(AN,HC,AN_acute)
-  }
-  
-if(ap < 2 & ap > 2){ 
-framename <- c("AN","HC","AN_partial")
-framelist <- list(AN,HC,AN_partial)
-}
-
-if(ap < 2 & ap < 2 ){ 
-  framename <- c("AN","HC")
-  framelist <- list(AN,HC)
-}
-
-
-i <- 0
-for(x in 1:length(framelist)){
-  frame <- framelist[[x]]
-  i <- i+1
-  name <- framename[i]
-  for(test in testvars){
-    for(j in 1:nrow(models)){  
-      for(pred in preds){
-        frame$test <- frame[[test]]
-        formula <- paste0(models[j,]$Formula,pred)
-        info <- paste0(models[j,]$Info," adj for ",pred)
-        if(length(unique(frame$site)<2)){formula <- gsub("site+","",formula, fixed = T)}
-        mod <-lm(formula = formula, data=frame)
-        n <- data.frame(model.matrix(mod))
-        n1 <- nrow(n)
+      TWO_GROUP <- rbind(TWO_GROUP,row)
+      ###three groups: this will work if dx3 column is coded as dx3=1 for partial AN, dx3=2 for acute AN, and dx3=0 for HC. If you have used 30,31,32 codings for HC, AN-p, AN-a, then the
+      ### code below will need modifying.
+      
+      formula <- models[i,]$Formula
+      formula <- gsub("dx", "dx3", formula)
+      if(length(unique(merged_ordered$site))<2){formula <- gsub(" + site","",formula, fixed = T)}
+      mod <-lm(formula = formula, data=merged_ordered)
+      n <- data.frame(model.matrix(mod))
+      n_an <- nrow(subset(n, n$dx32==1))
+      n_pan <- nrow(subset(n, n$dx31==1))
+      n_hc <- nrow(subset(n, n$dx31==0 & n$dx32==0))
+      if(n_an > 2 & n_pan > 2){
         stat <- data.frame(summary(mod)$coefficients)
-        stat <- stat[-1,]
-        r2 <- data.frame(partial_r2(mod))[-1,]
-        stat$r2 <- c(r2)
-        stat$lci <- stat$Estimate - 1.96*stat$Std..Error
-        stat$uci <- stat$Estimate + 1.96*stat$Std..Error
-        stat$n <- stat$n1
-        stat$outcome <- test
-        stat$model <- info
-        stat$sample <- name
-        STATS <- rbind(STATS, stat)
+        tmp=summary(glht(mod, mcp(dx3="Tukey")))
+        t_hc_pan=tmp$test$tstat[1] 
+        tstat.df=tmp$df
+        d_hc_pan <- partial.d(t_hc_pan,tstat.df,n_pan,n_hc)
+        seg_hc_pan <- se.g(d_hc_pan,n_pan,n_hc)
+        ci_hc_pan <- CI1(d_hc_pan, seg_hc_pan)
+        
+        t_hc_an=tmp$test$tstat[2] 
+        tstat.df=tmp$df
+        d_hc_an <- partial.d(t_hc_an,tstat.df,n_an,n_hc)
+        seg_hc_an <- se.g(d_hc_an,n_an,n_hc)
+        ci_hc_an <- CI1(d_hc_an, seg_hc_an)
+        
+        t_pan_an=tmp$test$tstat[3] 
+        tstat.df=tmp$df
+        d_pan_an <- partial.d(t_pan_an,tstat.df,n_an,n_pan)
+        seg_pan_an <- se.g(d_pan_an,n_an,n_pan)
+        ci_pan_an <- CI1(d_pan_an, seg_pan_an)
+        sed <- se.d(d,n1,n2) 
+        
+        row <- data.frame(test, info,n_an,n_pan,n_hc,t_hc_pan,d_hc_pan,seg_hc_pan,ci_hc_pan[1],ci_hc_pan[2],t_hc_an,d_hc_an,seg_hc_an,ci_hc_an[1],ci_hc_an[2],t_pan_an,d_pan_an,seg_pan_an,ci_pan_an[1],ci_pan_an[2],tstat.df)
+        THREE_GROUP <- rbind(THREE_GROUP,row)}
+      if(n_an < 2 | n_pan < 2){
+        n <- data.frame(model.matrix(mod))
+        n1 <- nrow(subset(n, n$dx31==1))
+        n2 <- nrow(subset(n, n$dx31==0))
+        stat <- data.frame(summary(mod)$coefficients)
+        t <- stat$t.value[rownames(stat)=="dx31"]
+        df_error <- mod$df.residual
+        if(formula == "test ~ dx"){
+          d <- d.t.unpaired(t,n1,n2)
+        }else{
+          d <- partial.d(t,df_error,n1,n2)}
+        seg <- se.g(d,n1,n2)  
+        #sed <- se.d(d,n1,n2) 
+        ci <- CI1(d, seg)
+        row <- data.frame(test, info,n1,n2,t,d,ci[1],ci[2], seg, df_error)
+        THREE_GROUP <- rbind(THREE_GROUP,row)}
+    }}
+    
+    ## Predictors of brain outcomes per group
+    setwd(enigmadir)
+    models <- read_xlsx("Models_withingroup.xlsx")
+    
+    
+    AN <- subset(merged_ordered, merged_ordered$dx==1)
+    HC <- subset(merged_ordered, merged_ordered$dx==0)
+    AN_acute <- subset(merged_ordered, merged_ordered$dx3==2)
+    AN_partial <- subset(merged_ordered, merged_ordered$dx3==1)
+    
+    a <- nrow(AN)
+    h <- nrow(HC)
+    aa <- nrow(AN_acute)
+    ap <- nrow(AN_partial)
+    
+    ## preds can be changed to add in other variables, using string format
+    preds <- c("+ age + age2", "+ age + age2 +bmi", "+ age")
+    
+    
+    if(ap > 2 & aa > 2){ 
+      framename <- c("AN","HC","AN_acute","AN_partial")
+      framelist <- list(AN,HC,AN_acute,AN_partial)
+    }
+    
+    if(ap < 2 & aa > 2){ 
+      framename <- c("AN","HC","AN_acute")
+      framelist <- list(AN,HC,AN_acute)
+    }
+    
+    if(ap < 2 & ap > 2){ 
+      framename <- c("AN","HC","AN_partial")
+      framelist <- list(AN,HC,AN_partial)
+    }
+    
+    if(ap < 2 & ap < 2 ){ 
+      framename <- c("AN","HC")
+      framelist <- list(AN,HC)
+    }
+    
+    
+    i <- 0
+    for(x in 1:length(framelist)){
+      frame <- framelist[[x]]
+      i <- i+1
+      name <- framename[i]
+      for(test in testvars){
+        for(j in 1:nrow(models)){  
+          for(pred in preds){
+            frame$test <- frame[[test]]
+            formula <- paste0(models[j,]$Formula,pred)
+            info <- paste0(models[j,]$Info," adj for ",pred)
+            if(length(unique(frame$site)<2)){formula <- gsub("site+","",formula, fixed = T)}
+            mod <-lm(formula = formula, data=frame)
+            n <- data.frame(model.matrix(mod))
+            n1 <- nrow(n)
+            stat <- data.frame(summary(mod)$coefficients)
+            stat <- stat[-1,]
+            r2 <- data.frame(partial_r2(mod))[-1,]
+            stat$r2 <- c(r2)
+            stat$lci <- stat$Estimate - 1.96*stat$Std..Error
+            stat$uci <- stat$Estimate + 1.96*stat$Std..Error
+            stat$n <- stat$n1
+            stat$outcome <- test
+            stat$model <- info
+            stat$sample <- name
+            STATS <- rbind(STATS, stat)
+          }}
       }}
-}}
-setwd(results)
-write.csv(TWO_GROUP,paste0(results,"/two_group_comparison_ENIGMA_",filetype,"_",study,".csv"))
-write.csv(THREE_GROUP,paste0(projectdir,"/three_group_comparison_ENIGMA_",filetype,".csv"))
-write.csv(STATS,paste0(results,"/correlations_ENIGMA_",filetype,"_",study,".csv"))
-}
+    setwd(results)
+    write.csv(TWO_GROUP,paste0(results,"/two_group_comparison_ENIGMA_",filetype,"_",study,".csv"))
+    write.csv(THREE_GROUP,paste0(projectdir,"/three_group_comparison_ENIGMA_",filetype,".csv"))
+    write.csv(STATS,paste0(results,"/correlations_ENIGMA_",filetype,"_",study,".csv"))
+  }
 
 
 ##Now voxel wise - change the path to where your images are.
