@@ -2,9 +2,6 @@ install.packages("pacman")
 
 pacman::p_load(ppcor, lsmeans, multcomp, vtable, dplyr, summarytools, readxl,sensemakr, emmeans,oro.nifti,readxl,stats,tidyr,voxel)
 
-dir.create("/Volumes/EDRU/Individual Folders/Caitlin/ENIGMA/NYSPI/results", mode = '0777')
-
-
 ##tell R where your ENIGMA folders are
 enigmadir <- "ENIGMA_AN_DTI"
 projectdir <- "ENIGMA_AN_DTI/nameofyoursite"
