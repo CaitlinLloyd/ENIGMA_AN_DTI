@@ -191,9 +191,9 @@ for(file in files){
       if(n_an < 2 | n_pan < 2){
         n <- data.frame(model.matrix(mod))
         if(n_an > 2){
-        n1 <- nrow(subset(n, n$dx32==1)}
+        n1 <- nrow(subset(n, n$dx32==1))}
         if(n_pan > 2){
-        n1 <- nrow(subset(n, n$dx31==1)}
+        n1 <- nrow(subset(n, n$dx31==1))}
         n2 <- nrow(subset(n, n$dx32==0 | n$dx31==0))
         stat <- data.frame(summary(mod)$coefficients)
         t <- stat$t.value[rownames(stat)=="dx32" | rownames(stat)=="dx31"]
