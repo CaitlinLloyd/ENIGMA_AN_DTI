@@ -121,21 +121,21 @@ for(file in files){
   
   
   setwd(enigmadir)
-  models <- read_xlsx("Models_betweengroup.xlsx")
+   models <- read.csv("~/Downloads/Models_betweengroup.csv")
   
   testvars <- merged_ordered %>% dplyr::select(ends_with(filetype)) %>% colnames()
   if("ad" %in% testvars){testvars <- testvars[!testvars=="ad"]}
   
   merged_ordered$dx3 <- as.factor(merged_ordered$dx3)
   
-  ##start with two-group
+  ##start with two-group (if this does not work dx1 may need to be dx in lines 138-142)
   for(i in 1:nrow(models)){  
     if(i > 1){testvars <- testvars[!(testvars=="Average" | testvars=="Weighted_avg"| testvars=="Core_weighted_avg" | testvars=="Core_weighted_avg" | testvars=="Peri")]}
     formula <- models[i,]$Formula
     info <- models[i,]$Info
     if(length(unique(merged_ordered$site<2))){formula <- gsub(" + site","",formula, fixed = T)}
     formula2dx <- formula
-    for(test in testvars){
+     for(test in testvars){
       merged_ordered$test <- merged_ordered[[test]]  
       mod <-lm(formula = formula2dx, data=merged_ordered)
       n <- data.frame(model.matrix(mod))
@@ -161,9 +161,16 @@ for(file in files){
       if(length(unique(merged_ordered$site))<2){formula <- gsub(" + site","",formula, fixed = T)}
       mod <-lm(formula = formula, data=merged_ordered)
       n <- data.frame(model.matrix(mod))
+      n_dx <- n %>% dplyr::select(starts_with("dx")) %>% colnames()
+      if(length(n_dx)> 1){
       n_an <- nrow(subset(n, n$dx32==1))
       n_pan <- nrow(subset(n, n$dx31==1))
-      n_hc <- nrow(subset(n, n$dx31==0 & n$dx32==0))
+      n_hc <- nrow(subset(n, n$dx31==0 & n$dx32==0))}
+      if(length(n_dx)==1){
+        n_an <- nrow(subset(n, n$dx32==1))
+        n_pan <- nrow(subset(n, n$dx31==1))
+        n_hc <- nrow(subset(n, n$dx31==0))}
+      if(n_hc==0){n_hc <- nrow(subset(n,n$dx32==0))}
       if(n_an > 2 & n_pan > 2){
         stat <- data.frame(summary(mod)$coefficients)
         tmp=summary(glht(mod, mcp(dx3="Tukey")))
@@ -191,10 +198,10 @@ for(file in files){
       if(n_an < 2 | n_pan < 2){
         n <- data.frame(model.matrix(mod))
         if(n_an > 2){
-        n1 <- nrow(subset(n, n$dx32==1))}
+          n1 <- nrow(subset(n, n$dx32==1))}
         if(n_pan > 2){
-        n1 <- nrow(subset(n, n$dx31==1))}
-        n2 <- nrow(subset(n, n$dx32==0 | n$dx31==0))
+          n1 <- nrow(subset(n, n$dx31==1))}
+        n2 <- n_hc
         stat <- data.frame(summary(mod)$coefficients)
         t <- stat$t.value[rownames(stat)=="dx32" | rownames(stat)=="dx31"]
         df_error <- mod$df.residual
@@ -208,25 +215,25 @@ for(file in files){
         row <- data.frame(test, info,n1,n2,t,d,ci[1],ci[2], seg, df_error)
         THREE_GROUP <- rbind(THREE_GROUP,row)}
     }}
-    
-    ## Predictors of brain outcomes per group
-    setwd(enigmadir)
-    models <- read_xlsx("Models_withingroup.xlsx")
-    
-    
-    AN <- subset(merged_ordered, merged_ordered$dx==1)
-    HC <- subset(merged_ordered, merged_ordered$dx==0)
-    AN_acute <- subset(merged_ordered, merged_ordered$dx3==2)
-    AN_partial <- subset(merged_ordered, merged_ordered$dx3==1)
-    
-    a <- nrow(AN)
-    h <- nrow(HC)
-    aa <- nrow(AN_acute)
-    ap <- nrow(AN_partial)
-    
-    ## preds can be changed to add in other variables, using string format
-    preds <- c("+ age + age2", "+ age + age2 +bmi", "+ age")
-    
+  
+  ## Predictors of brain outcomes per group
+  setwd(enigmadir)
+  models <- read.csv("~/Downloads/Models_withingroup.csv")
+  
+  
+  AN <- subset(merged_ordered, merged_ordered$dx==1)
+  HC <- subset(merged_ordered, merged_ordered$dx==0)
+  AN_acute <- subset(merged_ordered, merged_ordered$dx3==2)
+  AN_partial <- subset(merged_ordered, merged_ordered$dx3==1)
+  
+  a <- nrow(AN)
+  h <- nrow(HC)
+  aa <- nrow(AN_acute)
+  ap <- nrow(AN_partial)
+  
+  ## preds can be changed to add in other variables, using string format
+  preds <- c("+ age + age2", "+ age + age2 +bmi", "+ age")
+   
     
     if(ap > 2 & aa > 2){ 
       framename <- c("AN","HC","AN_acute","AN_partial")
